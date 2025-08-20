@@ -1,5 +1,6 @@
 import pkg from 'aws-sdk'; 
 const { S3 } = pkg;
+import { Request, Response } from "express";
 
 // Configure R2
 const configureR2 = () => {
@@ -13,7 +14,7 @@ const configureR2 = () => {
   });
 };
 
-export const generatePresignedUrl = async (req, res) => {
+export const generatePresignedUrl = async (req: Request, res: Response) => {
 
   const { contentType, keyPrefix } = req.body;
   
@@ -42,7 +43,7 @@ export const generatePresignedUrl = async (req, res) => {
       url: uploadUrl,
       publicUrl: `${process.env.PUBLIC_URL}/${key}`
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error generating presigned URL:', err.message);
     res.status(500).json({ message: err.message });
   }

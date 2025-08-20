@@ -1,5 +1,5 @@
 import express from 'express';
-import { adminLogin, createAdmin, editAdmin, getAdmin } from '../controllers/admin-auth.ts';
+import { adminLogin, createAdmin, editAdmin, getAdmin } from '../controllers/admin-auth';
 
 const router = express.Router();
 

@@ -1,6 +1,6 @@
 import express from "express";
 import { createVideo, getVideos, getVideo, updateVideo, deleteVideo, deleteModule, addVideoToModule } from "../controllers/video";
-import authMiddleware from "../midddleware/auth.ts";
+import authMiddleware from "../midddleware/auth";
 
 const router = express.Router();
 

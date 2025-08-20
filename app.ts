@@ -4,11 +4,11 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 
-import adminAuthRoutes from './routes/admin-auth.ts';
-import userRoutes from './routes/user.ts';
-import blogRoutes from './routes/blog.ts';
-import videoRoutes from './routes/video.ts';
-import r2Routes from './routes/r2.ts';
+import adminAuthRoutes from './routes/admin-auth';
+import userRoutes from './routes/user';
+import blogRoutes from './routes/blog';
+import videoRoutes from './routes/video';
+import r2Routes from './routes/r2';
 
 
 dotenv.config();

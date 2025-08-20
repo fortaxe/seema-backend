@@ -1,5 +1,5 @@
-import User from "../models/user.ts";
-import { createUserSchema, editUserSchema, deleteUserSchema } from "../validations/user.ts";
+import User from "../models/user";
+import { createUserSchema, editUserSchema, deleteUserSchema } from "../validations/user";
 import { Request, Response } from "express";
 
 export const sendMessage = async (req: Request, res: Response): Promise<void> => {

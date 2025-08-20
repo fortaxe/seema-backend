@@ -1,7 +1,7 @@
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
-import User from "../models/user.ts";
-import { createAdminSchema, editAdminSchema } from "../validations/auth.ts";
+import User from "../models/user";
+import { createAdminSchema, editAdminSchema } from "../validations/auth";
 import { Request, Response } from "express";
 
 export const adminLogin = async (req: Request, res: Response): Promise<void> => {
