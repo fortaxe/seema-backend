@@ -21,8 +21,7 @@ app.use(cors({
   origin: (origin, callback) => {
     const allowedOrigins = [
       'http://localhost:5173',
-      'https://seema-sigma.vercel.app',
-      'https://ai-f-inance.vercel.app'
+      'https://finance-ai-swart.vercel.app'
     ];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
