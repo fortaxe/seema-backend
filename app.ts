@@ -8,6 +8,7 @@ import adminAuthRoutes from './routes/admin-auth';
 import userRoutes from './routes/user';
 import blogRoutes from './routes/blog';
 import videoRoutes from './routes/video';
+import categoryRoutes from './routes/category';
 import r2Routes from './routes/r2';
 
 
@@ -19,8 +20,9 @@ const app = express();
 app.use(cors({
   origin: (origin, callback) => {
     const allowedOrigins = [
-      'http://localhost:3000',
-      'https://seema-sigma.vercel.app'
+      'http://localhost:5173',
+      'https://seema-sigma.vercel.app',
+      'https://ai-f-inance.vercel.app'
     ];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -40,7 +42,8 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use('/api', adminAuthRoutes);
 app.use('/api', userRoutes);
 app.use('/api', blogRoutes);
-app.use('/api', videoRoutes);
+app.use('/api/videos', videoRoutes);
+app.use('/api/categories', categoryRoutes);
 app.use('/api', r2Routes);
 
 app.get("/", (req, res) => {

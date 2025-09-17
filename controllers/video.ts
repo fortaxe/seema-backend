@@ -1,42 +1,47 @@
-import Module from "../models/video";
+import Video from "../models/video";
+import Category from "../models/category";
 import { Request, Response } from "express";
-import {
-  videosSchema,
-  updateVideoSchema,
-  deleteVideoSchema,
-  deleteModuleSchema,
-} from "../validations/video";
-import { extractVideoId } from "../utilis/extractVideoId";
+import mongoose from "mongoose";
 
 export const createVideo = async (req: Request, res: Response) => {
   try {
-    const result = videosSchema.safeParse(req.body);
-    if (!result.success) {
-      return res
-        .status(400)
-        .json({
-          message: "Invalid input",
-          errors: result.error.flatten().fieldErrors,
-        });
+    const { title, description, category, videoUrl, thumbnailUrl, fileSize, duration } = req.body;
+    
+
+    // Validate required fields
+    if (!title || !description || !category || !videoUrl) {
+      return res.status(400).json({ 
+        message: "Title, description, category, videoUrl, and user authentication are required" 
+      });
     }
 
-    const { videos } = result.data;
+    // Check if category exists
+    const categoryExists = await Category.findById(category);
+    if (!categoryExists) {
+      return res.status(400).json({ message: "Invalid category" });
+    }
 
-    const videosModel = videos.map((video) => {
-      const videoId = extractVideoId(video.youTubeUrl);
-      return {
-        ...video,
-        videoId,
-      };
+    const newVideo = new Video({
+      title: title.trim(),
+      description,
+      category,
+      videoUrl,
+      thumbnailUrl,
+      fileSize,
+      duration,
+     
     });
 
-    const newModel = new Module({
-      videos: videosModel,
+    await newVideo.save();
+
+    // Populate category details
+    await newVideo.populate('category', 'name');
+
+
+    return res.status(201).json({ 
+      message: "Video created successfully",
+      data: newVideo 
     });
-
-    await newModel.save();
-
-    return res.status(201).json({ data: newModel });
   } catch (error) {
     console.error("Error creating video:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -45,8 +50,37 @@ export const createVideo = async (req: Request, res: Response) => {
 
 export const getVideos = async (req: Request, res: Response) => {
   try {
-    const videos = await Module.find().sort({ createdAt: -1 });
-    return res.status(200).json({ data: videos });
+    const { category, active, page = 1, limit = 10 } = req.query;
+    
+    const filter: any = {};
+    if (category) {
+      filter.category = category;
+    }
+    if (active !== undefined) {
+      filter.isActive = active === 'true';
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [videos, total] = await Promise.all([
+      Video.find(filter)
+        .populate('category', 'name')
+      
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit)),
+      Video.countDocuments(filter)
+    ]);
+
+    return res.status(200).json({ 
+      data: videos,
+      pagination: {
+        current: Number(page),
+        total: Math.ceil(total / Number(limit)),
+        count: total,
+        limit: Number(limit)
+      }
+    });
   } catch (error) {
     console.error("Error getting videos:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -56,10 +90,18 @@ export const getVideos = async (req: Request, res: Response) => {
 export const getVideo = async (req: Request, res: Response) => {
   try {
     const { videoId } = req.params;
-    const video = await Module.findById(videoId);
+    
+    if (!mongoose.Types.ObjectId.isValid(videoId)) {
+      return res.status(400).json({ message: "Invalid video ID" });
+    }
+
+    const video = await Video.findById(videoId)
+      .populate('category', 'name')
+     
     if (!video) {
       return res.status(404).json({ message: "Video not found" });
     }
+    
     return res.status(200).json({ data: video });
   } catch (error) {
     console.error("Error getting video:", error);
@@ -69,44 +111,46 @@ export const getVideo = async (req: Request, res: Response) => {
 
 export const updateVideo = async (req: Request, res: Response) => {
   try {
-    const { moduleId } = req.params;
+    const { videoId } = req.params;
+    const { title, description, category, videoUrl, thumbnailUrl, fileSize, duration, isActive } = req.body;
 
-    // validate input
-    const result = updateVideoSchema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({
-        message: "Invalid input",
-        errors: result.error.flatten().fieldErrors,
-      });
+    if (!mongoose.Types.ObjectId.isValid(videoId)) {
+      return res.status(400).json({ message: "Invalid video ID" });
     }
 
-    const { videoId, title, description, youTubeUrl, thumbnail } = result.data;
-
-    // Find module that contains this video
-    const moduleDoc = await Module.findById(moduleId);
-    if (!moduleDoc) {
-      return res.status(404).json({ message: "Module with video not found" });
-    }
-
-    // Find the specific video subdocument
-    const video = moduleDoc.videos.id(videoId);
+    const video = await Video.findById(videoId);
     if (!video) {
       return res.status(404).json({ message: "Video not found" });
     }
 
-
-    const newVideoId = extractVideoId(youTubeUrl);
+    // Validate category if provided
+    if (category) {
+      const categoryExists = await Category.findById(category);
+      if (!categoryExists) {
+        return res.status(400).json({ message: "Invalid category" });
+      }
+    }
 
     // Update fields
-    video.title = title;
-    video.description = description;
-    video.youTubeUrl = youTubeUrl;
-    video.thumbnail = thumbnail;
-    video.videoId = newVideoId || "";
-    // Save the module
-    await moduleDoc.save();
+    if (title) video.title = title.trim();
+    if (description !== undefined) video.description = description;
+    if (category) video.category = category;
+    if (videoUrl) video.videoUrl = videoUrl;
+    if (thumbnailUrl !== undefined) video.thumbnailUrl = thumbnailUrl;
+    if (fileSize !== undefined) video.fileSize = fileSize;
+    if (duration !== undefined) video.duration = duration;
+    if (isActive !== undefined) video.isActive = isActive;
 
-    return res.status(200).json({ data: video });
+    await video.save();
+
+    // Populate category details
+    await video.populate('category', 'name');
+   
+
+    return res.status(200).json({ 
+      message: "Video updated successfully",
+      data: video 
+    });
   } catch (error) {
     console.error("Error updating video:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -115,110 +159,58 @@ export const updateVideo = async (req: Request, res: Response) => {
 
 export const deleteVideo = async (req: Request, res: Response) => {
   try {
-    const result = deleteVideoSchema.safeParse(req.body);
+    const { videoId } = req.params;
 
-    if (!result.success) {
-      res
-        .status(400)
-        .json({
-          message: "Invalid input",
-          errors: result.error.flatten().fieldErrors,
-        });
-      return;
+    if (!mongoose.Types.ObjectId.isValid(videoId)) {
+      return res.status(400).json({ message: "Invalid video ID" });
     }
 
-    const { moduleId, videoId } = result.data;
-
-    const moduleDoc = await Module.findById(moduleId);
-
-    if (!moduleDoc) {
-      return res.status(404).json({ message: "Module not found" });
-    }
-
-    const video = moduleDoc.videos.id(videoId);
-
+    const video = await Video.findById(videoId);
     if (!video) {
       return res.status(404).json({ message: "Video not found" });
     }
 
-    video.deleteOne();
+    await Video.findByIdAndDelete(videoId);
 
-    await moduleDoc.save();
+    return res.status(200).json({ message: "Video deleted successfully" });
   } catch (error) {
     console.error("Error deleting video:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
 
-export const addVideoToModule = async (req: Request, res: Response) => {
+// Get videos by category
+export const getVideosByCategory = async (req: Request, res: Response) => {
   try {
-    const { moduleId } = req.params;
-    const { title, description, youTubeUrl, thumbnail } = req.body;
+    const { categoryId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
 
-    // Validate input
-    if (!title || !description || !youTubeUrl) {
-      return res.status(400).json({ 
-        message: "Title, description, and youTubeUrl are required" 
-      });
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+      return res.status(400).json({ message: "Invalid category ID" });
     }
 
-    // Find the module
-    const moduleDoc = await Module.findById(moduleId);
-    if (!moduleDoc) {
-      return res.status(404).json({ message: "Module not found" });
-    }
+    const skip = (Number(page) - 1) * Number(limit);
 
-    // Extract video ID from YouTube URL
-    const videoId = extractVideoId(youTubeUrl);
+    const [videos, total] = await Promise.all([
+      Video.find({ category: categoryId, isActive: true })
+        .populate('category', 'name')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit)),
+      Video.countDocuments({ category: categoryId, isActive: true })
+    ]);
 
-    // Create new video object
-    const newVideo = {
-      title,
-      description,
-      youTubeUrl,
-      thumbnail: thumbnail || "",
-      videoId: videoId || "",
-    };
-
-    // Add video to module
-    moduleDoc.videos.push(newVideo);
-    await moduleDoc.save();
-
-    // Return the newly added video
-    const addedVideo = moduleDoc.videos[moduleDoc.videos.length - 1];
-    return res.status(201).json({ data: addedVideo });
+    return res.status(200).json({ 
+      data: videos,
+      pagination: {
+        current: Number(page),
+        total: Math.ceil(total / Number(limit)),
+        count: total,
+        limit: Number(limit)
+      }
+    });
   } catch (error) {
-    console.error("Error adding video to module:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-export const deleteModule = async (req: Request, res: Response) => {
-  try {
-    const result = deleteModuleSchema.safeParse(req.body);
-
-    if (!result.success) {
-      res
-        .status(400)
-        .json({
-          message: "Invalid input",
-          errors: result.error.flatten().fieldErrors,
-        });
-      return;
-    }
-
-    const { moduleId } = result.data;
-
-    const moduleDoc = await Module.findByIdAndDelete(moduleId);
-
-    if (!moduleDoc) {
-      res.status(404).json({ message: "Module not found" });
-      return;
-    }
-
-    return res.status(200).json({ message: "Module deleted" });
-  } catch (error) {
-    console.error("Error deleting module:", error);
+    console.error("Error getting videos by category:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
