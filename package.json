@@ -1,7 +1,6 @@
 {
   "name": "court_app_backend",
   "module": "index.ts",
-
   "private": true,
   "scripts": {
     "dev": "nodemon --watch . --ext ts --exec \"bun run\" index.ts",
@@ -55,7 +54,7 @@
     "moment-timezone": "^0.6.0",
     "mongodb": "^6.17.0",
     "mongoose": "^8.15.1",
-    "nodemailer": "^7.0.3",
+    "nodemailer": "^7.0.6",
     "nodemon": "^3.1.10",
     "pm2": "^5.4.3",
     "zod": "3.21.4",

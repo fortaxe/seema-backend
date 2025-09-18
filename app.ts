@@ -10,6 +10,7 @@ import blogRoutes from './routes/blog';
 import videoRoutes from './routes/video';
 import categoryRoutes from './routes/category';
 import r2Routes from './routes/r2';
+import contactRoutes from './routes/contact';
 
 
 dotenv.config();
@@ -44,6 +45,7 @@ app.use('/api', blogRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api', r2Routes);
+app.use('/api', contactRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Hello World from backend" });
