@@ -50,7 +50,7 @@ export const createVideo = async (req: Request, res: Response) => {
 
 export const getVideos = async (req: Request, res: Response) => {
   try {
-    const { category, active, page = 1, limit = 10 } = req.query;
+    const { category, active } = req.query;
     
     const filter: any = {};
     if (category) {
@@ -60,26 +60,12 @@ export const getVideos = async (req: Request, res: Response) => {
       filter.isActive = active === 'true';
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
-
-    const [videos, total] = await Promise.all([
-      Video.find(filter)
-        .populate('category', 'name')
-      
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit)),
-      Video.countDocuments(filter)
-    ]);
+    const videos = await Video.find(filter)
+      .populate('category', 'name')
+      .sort({ createdAt: -1 });
 
     return res.status(200).json({ 
-      data: videos,
-      pagination: {
-        current: Number(page),
-        total: Math.ceil(total / Number(limit)),
-        count: total,
-        limit: Number(limit)
-      }
+      data: videos
     });
   } catch (error) {
     console.error("Error getting videos:", error);
@@ -183,31 +169,17 @@ export const deleteVideo = async (req: Request, res: Response) => {
 export const getVideosByCategory = async (req: Request, res: Response) => {
   try {
     const { categoryId } = req.params;
-    const { page = 1, limit = 10 } = req.query;
 
     if (!mongoose.Types.ObjectId.isValid(categoryId)) {
       return res.status(400).json({ message: "Invalid category ID" });
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
-
-    const [videos, total] = await Promise.all([
-      Video.find({ category: categoryId, isActive: true })
-        .populate('category', 'name')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit)),
-      Video.countDocuments({ category: categoryId, isActive: true })
-    ]);
+    const videos = await Video.find({ category: categoryId, isActive: true })
+      .populate('category', 'name')
+      .sort({ createdAt: -1 });
 
     return res.status(200).json({ 
-      data: videos,
-      pagination: {
-        current: Number(page),
-        total: Math.ceil(total / Number(limit)),
-        count: total,
-        limit: Number(limit)
-      }
+      data: videos
     });
   } catch (error) {
     console.error("Error getting videos by category:", error);
