@@ -22,7 +22,7 @@ app.use(cors({
   origin: (origin, callback) => {
     const allowedOrigins = [
       'http://localhost:5173',
-      'https://finance-ai-swart.vercel.app'
+      'https://www.aifinanceservice.com'
     ];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
